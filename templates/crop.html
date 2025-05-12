@@ -1,40 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crop Receipt</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Bootstrap CSS for basic styling -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <!-- Tailwind CSS for additional styling -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.11/cropper.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.11/cropper.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <title>Crop Address - Post LIC Receipt</title>
+    
+    <style>
+        /* Keep the container full width for visibility */
+        .image-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* Ensure image takes full width */
+        #image {
+            width: 100%;
+            display: block;
+        }
+        
+        /* Style the button with Tailwind classes but keep it similar to original */
+        .crop-button {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 18px;
+        }
+        
+        /* Header styling */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-4xl mx-auto">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Adjust Receipt Crop</h1>
-                
-                <div class="mb-6">
-                    <div id="image-box" class="max-w-full overflow-hidden rounded-lg">
-                        <img id="image" src="{{scanned_image_path}}" alt="Receipt to crop" class="max-w-full">
-                    </div>
-                </div>
-
-                <div class="flex justify-center">
-                    <button id="crop-btn" 
-                            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
-                        Save Crop
-                    </button>
-                </div>
+<body class="bg-gray-100">
+    <div class="container my-4">
+        <!-- Simple header -->
+        <div class="header">
+            <h1 class="text-3xl font-bold text-blue-800">Crop Address</h1>
+            <p class="text-gray-600 mb-2">Adjust the blue box to select the address area</p>
+        </div>
+        
+        <!-- Navigation button -->
+        <div class="mb-3">
+            <a href="/" class="btn btn-secondary text-white">
+                <i class="fas fa-arrow-left mr-2"></i> Back
+            </a>
+        </div>
+        
+        <!-- Main content - keeping it similar to your original -->
+        <div class="bg-white rounded shadow p-4">
+            <div id="image-box" class="image-container">
+                <img id="image" src="{{scanned_image_path}}" alt="Scanned image">
             </div>
+            
+            <button class="btn btn-primary crop-button" id="crop-btn" type="button">
+                <i class="fas fa-crop-alt mr-2"></i> Continue
+            </button>
         </div>
     </div>
 
+    <!-- Cropper.js Script -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.11/cropper.js"></script>
+    
     <script>
+        // Storing that cropping view image in a variable
         const image = document.getElementById('image');
+        // crop-btn is the id of button that will trigger the event
         const crop_btn = document.getElementById('crop-btn');
 
+        // Creating a cropper object with the cropping view image
+        // Using the same settings as your original implementation
         const cropper = new Cropper(image, {
             autoCropArea: 0.01,
             initialAspectRatio: 2.22,
@@ -46,7 +93,13 @@
             minCropBoxHeight: 180,
         });
 
+        // When crop button is clicked this event will get triggered
         crop_btn.addEventListener('click', () => {
+            // Show loading state
+            crop_btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+            crop_btn.disabled = true;
+            
+            // Get the current crop data (x, y, height, width)
             const crop_data = cropper.getData();
             let data = {
                 "scanned_image_path": image.src,
@@ -56,6 +109,7 @@
                 "height": crop_data.height
             };
 
+            // POST the cropped data back to flask/python using fetch API
             fetch("http://127.0.0.1:1234/postCropInfo", {
                 method: "POST",
                 headers: {
@@ -65,6 +119,11 @@
             }).then(res => {
                 console.log("Request complete! response:", res);
                 location.href = "/";
+            }).catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
+                crop_btn.innerHTML = '<i class="fas fa-crop-alt mr-2"></i> Continue';
+                crop_btn.disabled = false;
             });
         });
     </script>

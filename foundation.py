@@ -56,7 +56,7 @@ class Printer:
             https://stackoverflow.com/questions/15631046/i-want-to-connect-my-program-to-image-scanner"""
 
         if not os.path.exists("static/tmp"):
-            os.mkdir("static/tmp")
+            os.makedirs("static/tmp", exist_ok=True)
         wia = win32com.client.Dispatch(self.WIA_COM)  # wia is a CommonDialog object
         dev = wia.ShowSelectDevice()
         try:
@@ -66,23 +66,29 @@ class Printer:
         except:
             msg = "Device Error: Switch on the printer and connect to the computer"
             logger.error(msg)
+            return None
 
         logger.info("Scanning...")
-        for i, item in enumerate(dev.Items, start=1):
-            if i == dev.Items.Count:
-                image = item.Transfer(self.WIA_IMG_FORMAT_PNG)
-                break
-        logger.info("Scan Completed")
+        try:
+            for i, item in enumerate(dev.Items, start=1):
+                if i == dev.Items.Count:
+                    image = item.Transfer(self.WIA_IMG_FORMAT_PNG)
+                    break
+            logger.info("Scan Completed")
+        except Exception as e:
+            logger.error(f"Error during scanning: {str(e)}")
+            return None
 
         try:
             timestamp = str(datetime.now()).replace(":", "-")[:19].replace(" ", "_")
-            os.mkdir(f"static/tmp/{timestamp}")
+            os.makedirs(f"static/tmp/{timestamp}", exist_ok=True)
             fname = f"static/tmp/{timestamp}/receipt.png"
             image.SaveFile(fname)
             logger.info(f"Scanned image got saved as {fname}")
             return fname
         except Exception as e:
-            logging.error("Could not save the scanned image as PNG", exc_info=True)
+            logger.error("Could not save the scanned image as PNG", exc_info=True)
+            return None
 
 
 class ScannedImage:
@@ -133,5 +139,20 @@ class InitialWipeOut:
     def __init__(self) -> None:
         path = "static/tmp"
         logger.info(f"Removing the directory {path}")
-        if os.path.exists(path):
-            shutil.rmtree(path)
+        try:
+            if os.path.exists(path):
+                # Use rmtree with onerror handler to skip permission errors
+                def handle_remove_error(func, path, exc_info):
+                    logger.warning(f"Failed to remove {path}: {exc_info[1]}")
+                
+                shutil.rmtree(path, onerror=handle_remove_error)
+            
+            # Create fresh directory
+            os.makedirs(path, exist_ok=True)
+            logger.info(f"Created fresh directory at {path}")
+        except Exception as e:
+            logger.error(f"Error during directory cleanup: {str(e)}")
+            # Still create the directory if it doesn't exist
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+                logger.info(f"Created directory at {path}")
