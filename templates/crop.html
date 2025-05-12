@@ -80,6 +80,79 @@
         // crop-btn is the id of button that will trigger the event
         const crop_btn = document.getElementById('crop-btn');
 
+        // Auto-scroll functionality
+        let scrollInterval = null;
+        let scrollSpeed = 10; // Initial scroll speed
+        let scrollDirection = 0; // 0 = no scroll, 1 = down, -1 = up
+
+        // Function to handle auto-scrolling
+        function setupAutoScroll() {
+            // Clear any existing scroll interval
+            if (scrollInterval) {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+
+            // Set up mouse move listener to detect proximity to edges
+            document.addEventListener('mousemove', handleMouseMove);
+            
+            // Handle mouse up to stop auto-scrolling
+            document.addEventListener('mouseup', function() {
+                if (scrollInterval) {
+                    clearInterval(scrollInterval);
+                    scrollInterval = null;
+                }
+                scrollDirection = 0;
+            });
+        }
+
+        // Handle mouse movement to determine if auto-scroll should activate
+        function handleMouseMove(e) {
+            const windowHeight = window.innerHeight;
+            const mouseY = e.clientY;
+            const edgeThreshold = 80; // Distance from edge to trigger scroll
+            
+            // Check if the mouse is near the top or bottom edge of the viewport
+            if (mouseY < edgeThreshold) {
+                // Near top edge - scroll up
+                startAutoScroll(-1);
+            } else if (mouseY > windowHeight - edgeThreshold) {
+                // Near bottom edge - scroll down
+                startAutoScroll(1);
+            } else {
+                // Not near any edge - stop scrolling
+                if (scrollInterval) {
+                    clearInterval(scrollInterval);
+                    scrollInterval = null;
+                }
+                scrollDirection = 0;
+            }
+        }
+
+        // Start auto-scrolling in the specified direction
+        function startAutoScroll(direction) {
+            // Only start if not already scrolling in this direction
+            if (scrollDirection !== direction) {
+                scrollDirection = direction;
+                
+                // Clear any existing interval
+                if (scrollInterval) {
+                    clearInterval(scrollInterval);
+                }
+                
+                // Set up new interval for scrolling
+                scrollInterval = setInterval(function() {
+                    // Dynamic scroll speed - increases the longer you hold near the edge
+                    window.scrollBy(0, scrollSpeed * direction);
+                    
+                    // Gradually increase scroll speed for smoother acceleration
+                    if (scrollSpeed < 30) { // Max speed limit
+                        scrollSpeed += 0.5;
+                    }
+                }, 16); // ~60fps for smooth scrolling
+            }
+        }
+
         // Creating a cropper object with the cropping view image
         // Using the same settings as your original implementation
         const cropper = new Cropper(image, {
@@ -91,6 +164,14 @@
             movable: false,
             minCropBoxWidth: 400,
             minCropBoxHeight: 180,
+            ready: function() {
+                // Set up auto-scroll once the cropper is initialized
+                setupAutoScroll();
+            },
+            cropstart: function() {
+                // Reset scroll speed when starting a new crop operation
+                scrollSpeed = 10;
+            }
         });
 
         // When crop button is clicked this event will get triggered
