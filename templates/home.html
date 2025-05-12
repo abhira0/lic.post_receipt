@@ -1,59 +1,68 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Receipt Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        {% if SCAN_ERROR %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">{{SCAN_ERROR}}</span>
+        </div>
+        {% endif %}
 
-<body>
-    {% if SCAN_ERROR %}
-    <div id="scan-error" style="color: red;">{{SCAN_ERROR}}</div>
-    {% endif %}
+        <div class="text-center mb-8">
+            <form action="/scan">
+                <button type="submit" 
+                    onclick="this.form.submit();this.disabled=true;"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-2xl transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+                    SCAN
+                </button>
+            </form>
+        </div>
 
-    <div style="text-align: center;">
-        <form action="/scan">
-            <input type="submit" value="SCAN" onClick="this.form.submit();this.disabled = true;"
-                style="font-size: 40px;" />
-        </form>
-    </div>
-
-    <div>
-        <table>
+        {% if images %}
+        <div class="max-w-2xl mx-auto">
             {% for key, val in images.items() %}
-            <tr>
-                <td>
-                    <button onclick="printPdf(&quot;{{val['pdf_path']}}&quot;)" style="font-size: 25px;">
+            <div class="bg-white rounded-lg shadow-lg p-6 flex flex-col items-center gap-6">
+                <div class="w-full">
+                    <img src="{{val['cropped_image_path']}}" 
+                         class="w-full h-auto rounded-lg shadow-md" 
+                         alt="Scanned document">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 items-center">
+                    <a href="{{val['crop_url']}}"
+                       class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 text-center w-full sm:w-auto">
+                        Adjust Crop
+                    </a>
+                    <button onclick="printPdf('{{val['pdf_path']}}')"
+                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 w-full sm:w-auto">
                         Print PDF
                     </button>
-                </td>
-                <td>
-                    <img src=" {{val['cropped_image_path']}}" style="width: 400px; height: auto">
-                </td>
-                <td>
-                    <button style="font-size: 25px;">
-                        <a href="{{val['crop_url']}}">Crop</a>
-                    </button>
-                </td>
-            </tr>
+                </div>
+            </div>
             {% endfor %}
-        </table>
+        </div>
+        {% endif %}
     </div>
 
     <script>
-        printPdf = function (url) {
-            var iframe = this._printIframe;
-            if (!this._printIframe) {
-                iframe = this._printIframe = document.createElement('iframe');
-                document.body.appendChild(iframe);
-
-                iframe.style.display = 'none';
-                iframe.onload = function () {
-                    setTimeout(function () {
-                        iframe.focus();
-                        iframe.contentWindow.print();
-                    }, 1);
-                };
-            }
-
-            iframe.src = url;
+        function printPdf(url) {
+            // Create a new window for printing
+            const printWindow = window.open(url, '_blank');
+            
+            // Wait for the PDF to load
+            printWindow.onload = function() {
+                // Print the PDF
+                printWindow.print();
+                
+                // Close the window after printing (optional)
+                // printWindow.close();
+            };
         }
     </script>
 </body>
-
 </html>
